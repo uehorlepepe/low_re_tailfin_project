@@ -1,0 +1,7 @@
+# OpenFOAM generated output files & logs
+log.*
+postProcessing/
+[1-9]*
+[1-9][0-9]*
+constant/polyMesh/
+0/
