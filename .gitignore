@@ -1,11 +1,11 @@
-# Ignore OpenFOAM mesh & time directories (keeps repo lightweight)
+# Ignore OpenFOAM mesh, time directories, and STL outputs
 openfoam_template/processor*
 openfoam_template/[1-9]*
 openfoam_template/0.*/
 openfoam_template/polyMesh/
-openfoam_template/*.stl
+openfoam_template/constant/triSurface/*.stl
 
-# Ignore Python cache & macOS metadata
+# Ignore Python cache & OS metadata
 __pycache__/
 *.pyc
 .DS_Store
