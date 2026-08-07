@@ -1,0 +1,11 @@
+# Ignore OpenFOAM mesh & time directories (keeps repo lightweight)
+openfoam_template/processor*
+openfoam_template/[1-9]*
+openfoam_template/0.*/
+openfoam_template/polyMesh/
+openfoam_template/*.stl
+
+# Ignore Python cache & macOS metadata
+__pycache__/
+*.pyc
+.DS_Store
