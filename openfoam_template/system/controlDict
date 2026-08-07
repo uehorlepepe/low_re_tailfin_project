@@ -36,6 +36,7 @@ functions
         liftDir         (0 0 1);
         dragDir         (1 0 0);
         pitchAxis       (0 1 0);
+        origin          (0 0 0);
         magUInf         10;
         lRef            0.17;
         Aref            0.025;
