@@ -28,15 +28,15 @@ def generate_tailfin(sweep_deg, ar, taper, output_stl):
     root_pts = load_airfoil_points(dat_path, root_chord)
     tip_pts = load_airfoil_points(dat_path, tip_chord)
 
-    root_wire = cq.Workplane("XY").polyline(root_pts).close()
-    tip_wire = (
+    # Place root profile on base XY plane, then workplane offset to tip profile plane
+    tailfin = (
         cq.Workplane("XY")
-        .transformed(offset=(sweep_offset, 0, span))
-        .polyline(tip_pts)
-        .close()
+        .polyline(root_pts).close()
+        .workplane(offset=span)
+        .transformed(offset=(sweep_offset, 0, 0))
+        .polyline(tip_pts).close()
+        .loft(combine=True)
     )
-
-    tailfin = root_wire.loft(tip_wire)
 
     os.makedirs(os.path.dirname(os.path.abspath(output_stl)), exist_ok=True)
     cq.exporters.export(tailfin, output_stl)
