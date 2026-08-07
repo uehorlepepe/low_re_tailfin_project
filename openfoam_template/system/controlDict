@@ -21,3 +21,23 @@ writeCompression off;
 timeFormat      general;
 timePrecision   6;
 runTimeModifiable true;
+
+functions
+{
+    forceCoeffs
+    {
+        type            forceCoeffs;
+        libs            ("libforces.so");
+        writeControl    timeStep;
+        timeInterval    1;
+        patches         ("tailfin");
+        rho             rhoInf;
+        rhoInf          1.225;
+        liftDir         (0 0 1);
+        dragDir         (1 0 0);
+        pitchAxis       (0 1 0);
+        magUInf         10;
+        lRef            0.17;
+        Aref            0.025;
+    }
+}

@@ -30,6 +30,9 @@ SIMPLE
     nNonOrthogonalCorrectors 0;
     consistent      yes;
 
+    pRefCell        0;
+    pRefValue       0;
+
     residualControl
     {
         p               1e-4;
