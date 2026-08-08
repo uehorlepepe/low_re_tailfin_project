@@ -1,10 +1,3 @@
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2606                                 |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
 FoamFile
 {
     version     2.0;
@@ -13,71 +6,22 @@ FoamFile
     location    "system";
     object      fvSolution;
 }
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 solvers
 {
     p
     {
         solver          GAMG;
-        tolerance       1e-05;
-        relTol          0.05;
+        tolerance       1e-06;
+        relTol          0.01;
         smoother        GaussSeidel;
     }
 
-    U
+    "(U|k|omega|gammaInt|ReThetat)"
     {
-        solver          PBiCGStab;
-        preconditioner  DILU;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
         tolerance       1e-06;
-        relTol          0.01;
-    }
-
-    k
-    {
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-05;
-        relTol          0.1;
-    }
-
-    omega
-    {
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-05;
-        relTol          0.1;
-    }
-
-    nut
-    {
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-05;
-        relTol          0.1;
-    }
-
-    ReThetat
-    {
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-05;
-        relTol          0.1;
-    }
-
-    gamma
-    {
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-05;
-        relTol          0.1;
-    }
-
-    gammaInt
-    {
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-05;
         relTol          0.1;
     }
 }
@@ -85,34 +29,21 @@ solvers
 SIMPLE
 {
     nNonOrthogonalCorrectors 2;
-    /* 	   
-    residualControl
-    {
-        p               1e-04;
-        U               1e-04;
-        k               1e-04;
-        omega           1e-04;
-        ReThetat        1e-04;
-        gamma           1e-04;
-        gammaInt        1e-04;
-    }
-    */
-    relaxationFactors
-    {
-        fields
-        {
-            p               0.3;
-        }
-        equations
-        {
-            U               0.7;
-            k               0.7;
-            omega           0.7;
-            ReThetat        0.3;
-            gamma           0.3;
-            gammaInt        0.3;
-        }
-    }
+    consistent               yes;
 }
 
-// *********************************---------------------------------------- //
+relaxationFactors
+{
+    equations
+    {
+        U               0.5;
+        k               0.5;
+        omega           0.5;
+        gammaInt        0.5;
+        ReThetat        0.5;
+    }
+    fields
+    {
+        p               0.2;
+    }
+}

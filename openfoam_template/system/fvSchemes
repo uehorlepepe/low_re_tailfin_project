@@ -1,10 +1,3 @@
-/*--------------------------------*- C++ -*----------------------------------*|
-| =========                 |                                                 |
-| \\      /  Foam         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   Operation    | Version:  v2606                                 |
-|   \\  /    And          | Website:  www.openfoam.com                      |
-|    \\/     Manipulation |                                                 |
-*---------------------------------------------------------------------------*/
 FoamFile
 {
     version     2.0;
@@ -13,7 +6,6 @@ FoamFile
     location    "system";
     object      fvSchemes;
 }
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 ddtSchemes
 {
@@ -27,19 +19,18 @@ gradSchemes
 
 divSchemes
 {
-    default             none;
-    div(phi,U)          bounded Gauss upwind;
-    div(phi,k)          bounded Gauss upwind;
-    div(phi,omega)      bounded Gauss upwind;
-    div(phi,ReThetat)   bounded Gauss upwind;
-    div(phi,gamma)      bounded Gauss upwind;
-    div(phi,gammaInt)   bounded Gauss upwind;
+    default         none;
+    div(phi,U)      bounded Gauss upwind;
+    div(phi,k)      bounded Gauss upwind;
+    div(phi,omega)  bounded Gauss upwind;
+    div(phi,gammaInt) bounded Gauss upwind;
+    div(phi,ReThetat) bounded Gauss upwind;
     div((nuEff*dev2(T(grad(U))))) Gauss linear;
 }
 
 laplacianSchemes
 {
-    default         Gauss linear orthogonal;
+    default         Gauss linear corrected;
 }
 
 interpolationSchemes
@@ -49,12 +40,5 @@ interpolationSchemes
 
 snGradSchemes
 {
-    default         orthogonal;
+    default         corrected;
 }
-
-wallDist
-{
-    method          meshWave;
-}
-
-// *********************************---------------------------------------- //
