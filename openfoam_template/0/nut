@@ -7,7 +7,6 @@ FoamFile
 }
 
 dimensions      [0 2 -1 0 0 0 0];
-
 internalField   uniform 0;
 
 boundaryField
@@ -22,18 +21,17 @@ boundaryField
         type            calculated;
         value           uniform 0;
     }
-    sides
-    {
-        type            calculated;
-        value           uniform 0;
-    }
-    symmetry
-    {
-        type            symmetryPlane;
-    }
     tailfin
     {
         type            nutkWallFunction;
         value           uniform 0;
+    }
+    sides
+    {
+        type            zeroGradient;
+    }
+    symmetry
+    {
+        type            symmetryPlane;
     }
 }

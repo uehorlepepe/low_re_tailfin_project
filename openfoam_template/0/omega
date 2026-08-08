@@ -7,19 +7,23 @@ FoamFile
 }
 
 dimensions      [0 0 -1 0 0 0 0];
-
-internalField   uniform 3.375;
+internalField   uniform 15;
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform 3.375;
+        value           uniform 15;
     }
     outlet
     {
         type            zeroGradient;
+    }
+    tailfin
+    {
+        type            omegaWallFunction;
+        value           uniform 15;
     }
     sides
     {
@@ -28,10 +32,5 @@ boundaryField
     symmetry
     {
         type            symmetryPlane;
-    }
-    tailfin
-    {
-        type            omegaWallFunction;
-        value           uniform 50;
     }
 }

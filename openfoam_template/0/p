@@ -7,7 +7,6 @@ FoamFile
 }
 
 dimensions      [0 2 -2 0 0 0 0];
-
 internalField   uniform 0;
 
 boundaryField
@@ -21,6 +20,10 @@ boundaryField
         type            fixedValue;
         value           uniform 0;
     }
+    tailfin
+    {
+        type            zeroGradient;
+    }
     sides
     {
         type            zeroGradient;
@@ -28,9 +31,5 @@ boundaryField
     symmetry
     {
         type            symmetryPlane;
-    }
-    tailfin
-    {
-        type            zeroGradient;
     }
 }

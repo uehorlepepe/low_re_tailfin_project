@@ -7,19 +7,23 @@ FoamFile
 }
 
 dimensions      [0 2 -2 0 0 0 0];
-
-internalField   uniform 0.0375;
+internalField   uniform 0.0065;
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform 0.0375;
+        value           uniform 0.0065;
     }
     outlet
     {
         type            zeroGradient;
+    }
+    tailfin
+    {
+        type            kLowReWallFunction;
+        value           uniform 0.0065;
     }
     sides
     {
@@ -28,10 +32,5 @@ boundaryField
     symmetry
     {
         type            symmetryPlane;
-    }
-    tailfin
-    {
-        type            kqRWallFunction;
-        value           uniform 0.0375;
     }
 }

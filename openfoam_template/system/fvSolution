@@ -85,7 +85,7 @@ solvers
 SIMPLE
 {
     nNonOrthogonalCorrectors 2;
-    
+    /* 	   
     residualControl
     {
         p               1e-04;
@@ -96,18 +96,18 @@ SIMPLE
         gamma           1e-04;
         gammaInt        1e-04;
     }
-
+    */
     relaxationFactors
     {
         fields
         {
-            p               0.2;
+            p               0.3;
         }
         equations
         {
-            U               0.3;
-            k               0.3;
-            omega           0.3;
+            U               0.7;
+            k               0.7;
+            omega           0.7;
             ReThetat        0.3;
             gamma           0.3;
             gammaInt        0.3;

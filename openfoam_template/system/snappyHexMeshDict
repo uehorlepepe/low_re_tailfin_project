@@ -67,13 +67,18 @@ snapControls
 
 addLayersControls
 {
-    relativeSizes true;
+    relativeSizes false;
+
     layers
     {
+	tailfin
+	{
+	    nSurfaceLayers 15;
+	}
     }
     expansionRatio 1.2;
-    finalLayerThickness 0.5;
-    minThickness 0.1;
+    finalLayerThickness 0.000028;
+    minThickness 0.0000028;
     nGrow 0;
 }
 
