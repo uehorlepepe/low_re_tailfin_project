@@ -31,7 +31,7 @@ boundaryField
     }
     tailfin
     {
-        type            kLowReWallFunction;
+        type            kqRWallFunction;
         value           uniform 0.0375;
     }
 }

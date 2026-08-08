@@ -98,3 +98,29 @@ meshQualityControls
 }
 
 mergeTolerance 1e-6;
+
+addLayersControls
+{
+    relativeSizes false;
+    expansionRatio 1.2;
+    finalLayerThickness 0.0001;
+    minimumThickness 0.00005;
+    nSolveIter 30;
+    nRelaxIter 5;
+    nSmoothSurfaceNormals 1;
+    nSmoothNormals 3;
+    nSmoothThickness 10;
+    maxFaceThicknessRatio 0.5;
+    intermediateSmooth 0;
+    nBufferLayers 0;
+    maxThicknessToMedialRatio 0.3;
+    minMedianAxisAngle 90;
+    nGrow 0;
+    featureAngle 60;
+    slipFeatureAngle 30;
+    relaxed
+    {
+        nMaximumCells 2000000;
+        nRelaxIter 100;
+    }
+}

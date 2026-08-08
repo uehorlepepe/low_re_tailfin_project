@@ -32,6 +32,6 @@ boundaryField
     tailfin
     {
         type            omegaWallFunction;
-        value           uniform 3.375;
+        value           uniform 50;
     }
 }
