@@ -42,7 +42,7 @@ if os.path.exists(path):
 
     layers
     {
-        "tailfin.*"
+        "tailfin"
         {
             nSurfaceLayers 18;
         }
