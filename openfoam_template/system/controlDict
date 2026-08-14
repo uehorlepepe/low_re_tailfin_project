@@ -36,13 +36,13 @@ functions
         rho             rhoInf;
         rhoInf          1.225;
         
-        origin          (0.0426 0 0);
-        e1              (1 0 0);
-        e2              (0 0 1);
+        dragDir         (1 0 0);
+        liftDir         (0 0 1);
+        pitchAxis       (0 1 0);
         
-        magUInf         6.6467;
-        lRef            0.170385;
-        Aref            0.0511155;
+        magUInf         6.6618;
+        lRef            0.149927;
+        Aref            0.050000;
     }
 
     wallShearStress

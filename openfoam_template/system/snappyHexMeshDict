@@ -25,7 +25,7 @@ castellatedMeshControls
     maxGlobalCells 2000000;
     minRefinementCells 10;
     maxLoadUnbalance 0.10;
-    nCellsBetweenLevels 2;
+    nCellsBetweenLevels 3;
 
     features
     (
@@ -69,40 +69,33 @@ snapControls
 
 addLayersControls
 {
-    relativeSizes       false;
+    relativeSizes         false;
+    nBufferCellsNoExtrude 0;
+    featureAngle          60;
+    nGrow                 0;
 
     layers
     {
-        tailfin
+        "tailfin"
         {
-            nSurfaceLayers  8;
+            nSurfaceLayers 18;
         }
     }
 
-    expansionRatio      1.2;
-    firstLayerThickness 5e-05; // Starting with manageable ~50 micron first layer
-    minThickness        1e-06;
+    expansionRatio      1.12;
+    firstLayerThickness 0.000003;
+    minThickness        1e-07;
 
-    // v2606 Layer Extrusion Stability Controls
-    nGrow               0;
-    featureAngle        130;
-    slipFeatureAngle    30;
+    nSolveIter          50;
     nRelaxIter          5;
-    nRelaxedIter        20;
-
-    minMedialAxisAngle  90;
-    maxThicknessToMedialRatio 0.3;
-    medialAxisHeadRoom  0.2;
-
-    nBufferCellsNoExtrude 0;
     nSmoothSurfaceNormals 1;
     nSmoothNormals      3;
     nSmoothThickness    10;
     maxFaceThicknessRatio 0.5;
+    maxThicknessToMedialRatio 0.3;
+    minMedialAxisAngle  90;
     nLayerIter          50;
-    
-    // Allow snappy to handle tight corners gracefully
-    meshShrinkationWithNoLayers false;
+    nRelaxedIter        20;
 }
 
 meshQualityControls
