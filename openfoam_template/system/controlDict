@@ -7,10 +7,10 @@ FoamFile
 }
 
 application     simpleFoam;
-startFrom       startTime;
-startTime       0;
-stopAt          endTime;
-endTime         1000;
+startFrom startTime;
+startTime 0;
+stopAt endTime;
+endTime 1000;
 deltaT          1;
 writeControl    timeStep;
 writeInterval   100;
@@ -30,19 +30,41 @@ functions
         libs            ("libforces.so");
         writeControl    timeStep;
         timeInterval    1;
+        log             true;
+        
         patches         ("tailfin");
         rho             rhoInf;
         rhoInf          1.225;
         
-        coordinateSystem
-        {
-            origin      (0 0 0);
-            e1          (1 0 0);
-            e2          (0 0 1);
-        }
+        origin          (0.0426 0 0);
+        e1              (1 0 0);
+        e2              (0 0 1);
+        
+        magUInf         6.6467;
+        lRef            0.170385;
+        Aref            0.0511155;
+    }
 
-        magUInf         10;
-        lRef            0.17;
-        Aref            0.025;
+    wallShearStress
+    {
+        type            wallShearStress;
+        libs            ("libfieldFunctionObjects.so");
+        writeControl    writeTime;
+        patches         ("tailfin");
+    }
+
+    yPlus
+    {
+        type            yPlus;
+        libs            ("libfieldFunctionObjects.so");
+        writeControl    writeTime;
+        patches         ("tailfin");
+    }
+
+    Q
+    {
+        type            Q;
+        libs            ("libfieldFunctionObjects.so");
+        writeControl    writeTime;
     }
 }

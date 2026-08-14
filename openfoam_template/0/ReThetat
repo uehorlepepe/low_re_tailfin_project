@@ -1,0 +1,40 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  Class         : Foam::fvPatchField
+  Field         : ReThetat
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      ReThetat;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+internalField   uniform 800;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 800;
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    sides
+    {
+        type            zeroGradient;
+    }
+    symmetry
+    {
+        type            symmetryPlane;
+    }
+    tailfin
+    {
+        type            zeroGradient;
+    }
+}

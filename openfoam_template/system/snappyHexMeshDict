@@ -39,7 +39,7 @@ castellatedMeshControls
     {
         tailfin
         {
-            level (2 3);
+            level (4 5);
         }
     }
 
@@ -69,39 +69,45 @@ snapControls
 
 addLayersControls
 {
-    relativeSizes         false;
-    nBufferCellsNoExtrude 0;
-    featureAngle          60;
-    nGrow                 0;
+    relativeSizes       false;
 
     layers
     {
-        "tailfin.*"
+        tailfin
         {
-            nSurfaceLayers 5;
+            nSurfaceLayers  8;
         }
     }
 
     expansionRatio      1.2;
-    firstLayerThickness 0.000028;
+    firstLayerThickness 5e-05; // Starting with manageable ~50 micron first layer
     minThickness        1e-06;
 
-    // Quality & smoothing controls
-    nSolveIter          30;
+    // v2606 Layer Extrusion Stability Controls
+    nGrow               0;
+    featureAngle        130;
+    slipFeatureAngle    30;
     nRelaxIter          5;
+    nRelaxedIter        20;
+
+    minMedialAxisAngle  90;
+    maxThicknessToMedialRatio 0.3;
+    medialAxisHeadRoom  0.2;
+
+    nBufferCellsNoExtrude 0;
     nSmoothSurfaceNormals 1;
     nSmoothNormals      3;
     nSmoothThickness    10;
     maxFaceThicknessRatio 0.5;
-    maxThicknessToMedialRatio 0.3;
-    minMedialAxisAngle  90;
     nLayerIter          50;
-    nRelaxedIter        20;
+    
+    // Allow snappy to handle tight corners gracefully
+    meshShrinkationWithNoLayers false;
 }
 
 meshQualityControls
 {
-    maxNonOrtho 65;
+    maxNonOrtho 75;
     maxBoundarySkewness 20;
     maxInternalSkewness 4;
     maxConcave 80;

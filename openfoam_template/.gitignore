@@ -1,7 +1,16 @@
-# OpenFOAM generated output files & logs
+# Ignore OpenFOAM time folders (1, 100, 1000, etc.)
+/[1-9]*/
+
+# Ignore parallel decomposition folders
+/processor*/
+
+# Ignore generated heavy mesh directories
+/constant/polyMesh/
+
+# Ignore heavy postProcessing field outputs (keep configs/logs if desired)
+/postProcessing/
+
+# Ignore temporary/log files
+*.log
 log.*
-postProcessing/
-[1-9]*
-[1-9][0-9]*
-constant/polyMesh/
-0/
+cell_*.obj
