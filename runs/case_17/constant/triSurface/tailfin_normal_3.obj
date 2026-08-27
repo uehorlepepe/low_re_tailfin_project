@@ -1,0 +1,17 @@
+# Wavefront OBJ file written 2026-08-14T13:15:55
+o tailfin_normal_3
+
+# points : 2
+# faces  : 1
+# zones  : 1
+#   0  tailfin  (nFaces: 1)
+
+# <points count="2">
+v 0 -0 0
+v 0.104493 1.38883e-06 0
+# </points>
+
+# <faces count="1">
+g tailfin
+f 2 1 1
+# </faces>
