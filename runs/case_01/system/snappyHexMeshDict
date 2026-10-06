@@ -39,7 +39,7 @@ castellatedMeshControls
     {
         tailfin
         {
-            level (4 5);
+            level (3 4);
         }
     }
 
@@ -78,12 +78,12 @@ addLayersControls
     {
         "tailfin"
         {
-            nSurfaceLayers 20;
+            nSurfaceLayers 12;
         }
     }
 
     expansionRatio      1.2;
-    firstLayerThickness 2e-06;
+    firstLayerThickness 1.5e-05;
     minThickness        2e-07;
 
     nSolveIter          50;
@@ -117,6 +117,17 @@ meshQualityControls
 
     nSmoothScale 4;
     errorReduction 0.75;
+
+    relaxed
+    {
+        maxNonOrtho 75;
+        maxBoundarySkewness 30;
+        maxInternalSkewness 8;
+        maxConcavity 100;
+        minVol 1e-15;
+        minTetQuality -1e30;
+        minDeterminant 0.0001;
+    }
 }
 
 mergeTolerance 1e-6;

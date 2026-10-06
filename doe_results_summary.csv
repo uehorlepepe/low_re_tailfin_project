@@ -1,0 +1,3 @@
+run_id,case,sweep_deg,aspect_ratio,taper_ratio,status,cells,layer_coverage,iters,stop_reason,Cd,Cl,Cy,yplus_min,yplus_max,yplus_avg,lsb_mean,lsb_max,lsb_p95,lsb_frac_le1,notes
+run_01,case_01,19.82,2.91,0.581,OK,390251,96.9%,391,converged,0.02369189,-0.0027398,-0.0005036851,0.0607355,58.0104,1.84184,1.06,58.01,2.15,0.8809999999999999,
+run_02,case_02,23.87,1.65,0.732,OK,268100,94.5%,396,converged,0.01616654,-0.002090707,0.0001709111,0.0741506,58.1145,2.54109,1.46,53.92,3.12,0.815,

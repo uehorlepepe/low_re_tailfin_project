@@ -18,6 +18,9 @@ VTK/
 runs/*/VTK/
 snappy_full.log
 runs/*/snappy_full.log
+snappy_sc.log
+runs/*/snappy_sc.log
+doe_*.log
 terminal_all_bash.txt
 zsh_history_raw.txt
 .idea/

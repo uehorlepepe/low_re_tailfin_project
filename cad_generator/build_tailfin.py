@@ -15,7 +15,8 @@ def load_airfoil_points(dat_filepath, chord_length):
                 points.append((x, y))
     return points
 
-def generate_tailfin(sweep_deg, ar, taper, output_stl):
+def generate_tailfin(sweep_deg, ar, taper, output_stl,
+                     tol=0.0001, atol=0.05, te_frac=0.001):
     root_chord = 0.15 
     tip_chord = root_chord * taper
     mean_chord = 0.5 * (root_chord + tip_chord)
@@ -31,7 +32,7 @@ def generate_tailfin(sweep_deg, ar, taper, output_stl):
     # Blunt sharp TE (SD8020 closes at a point -> zero-thickness edge crashes
     # snappyHexMesh when finely tessellated). Enforce ~0.1% chord TE thickness.
     for pts, chord in ((root_pts, root_chord), (tip_pts, tip_chord)):
-        te_gap = 0.001 * chord
+        te_gap = te_frac * chord
         # first + last points are both TE (x~=chord); split them +/- in y
         if abs(pts[0][0] - pts[-1][0]) < 1e-9 and abs(pts[0][1] - pts[-1][1]) < 1e-9:
             cx = pts[0][0]
@@ -49,7 +50,7 @@ def generate_tailfin(sweep_deg, ar, taper, output_stl):
     )
 
     os.makedirs(os.path.dirname(os.path.abspath(output_stl)), exist_ok=True)
-    cq.exporters.export(tailfin, output_stl, tolerance=0.0001, angularTolerance=0.05)
+    cq.exporters.export(tailfin, output_stl, tolerance=tol, angularTolerance=atol)
     print(f"✅ Successfully generated 3D CAD: {output_stl}")
     print(f"   Metrics: Sweep={sweep_deg}°, AR={ar}, Taper={taper} | Span={span:.3f}m")
 
@@ -59,6 +60,12 @@ if __name__ == "__main__":
     parser.add_argument("--ar", type=float, required=True)
     parser.add_argument("--taper", type=float, required=True)
     parser.add_argument("--out", type=str, default="tailfin.stl")
+    parser.add_argument("--tol", type=float, default=0.0001,
+                        help="STL linear deflection (frozen DoE recipe uses 0.1)")
+    parser.add_argument("--atol", type=float, default=0.05)
+    parser.add_argument("--te-frac", type=float, default=0.001,
+                        help="blunt TE gap as fraction of chord")
 
     args = parser.parse_args()
-    generate_tailfin(args.sweep, args.ar, args.taper, args.out)
+    generate_tailfin(args.sweep, args.ar, args.taper, args.out,
+                     tol=args.tol, atol=args.atol, te_frac=args.te_frac)

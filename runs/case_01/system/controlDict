@@ -7,10 +7,10 @@ FoamFile
 }
 
 application     simpleFoam;
-startFrom latestTime;
+startFrom startTime;
 startTime 0;
 stopAt endTime;
-endTime 500;
+endTime 1000;
 deltaT          1;
 writeControl    timeStep;
 writeInterval   100;
