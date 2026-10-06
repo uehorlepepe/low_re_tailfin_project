@@ -23,7 +23,7 @@ boundaryField
     }
     tailfin
     {
-        type            nutkWallFunction;
+        type            nutUSpaldingWallFunction;
         value           uniform 0;
     }
     sides

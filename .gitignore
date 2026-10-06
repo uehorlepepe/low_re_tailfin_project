@@ -24,3 +24,9 @@ doe_*.log
 terminal_all_bash.txt
 zsh_history_raw.txt
 .idea/
+
+# Bulk CFD artifacts: time dirs + meshes stay local (per-case logs,
+# postProcessing/*.dat and summary CSVs are the committed record)
+runs/*/[0-9]*/
+runs/*/constant/polyMesh/
+runs/*/processor*/
