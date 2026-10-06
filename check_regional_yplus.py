@@ -17,8 +17,8 @@ def vtparray(text, dtype, ncomp=1):
         data = data.reshape(-1, ncomp)
     return data
 
-def parse_vtp_ascii(path):
-    """Parse ASCII .vtp PolyData: face centres from Points+Polys, yPlus from CellData."""
+def parse_vtp_ascii(path, field='yPlus'):
+    """Parse ASCII .vtp PolyData: face centres from Points+Polys, `field` from CellData."""
     import xml.etree.ElementTree as ET
     tree = ET.parse(path)
     root = tree.getroot()
@@ -30,7 +30,7 @@ def parse_vtp_ascii(path):
     pts = find(('Points',)).reshape(-1, 3)
     conn = find(('connectivity',)).astype(int)
     offs = find(('offsets',)).astype(int)
-    yp = find(('yPlus',))
+    yp = find((field,))
     # face centres
     starts = np.concatenate([[0], offs[:-1]])
     # general polygon: mean of vertices
@@ -45,7 +45,7 @@ def parse_vtp_ascii(path):
         for i, (s, e) in enumerate(zip(starts, offs)):
             vals[i] = yp[conn[s:e]].mean()
     else:
-        raise ValueError(f'yPlus len {len(yp)} matches neither faces {len(fc)} nor points {len(pts)}')
+        raise ValueError(f'{field} len {len(yp)} matches neither faces {len(fc)} nor points {len(pts)}')
     return fc, vals
 
 def main():
