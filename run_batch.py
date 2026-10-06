@@ -31,20 +31,30 @@ def clean_stl(stl_path):
     trimesh.repair.fix_normals(mesh)
     mesh.export(stl_path, file_type='stl')
 
+
 def execute_case(case_dir):
-    """Runs OpenFOAM execution sequence for a single case directory."""
+    """Runs OpenFOAM execution sequence using the native OpenFOAM app wrapper."""
+
+    # Prefix your commands with the openfoam environment launcher
     commands = [
-        ["surfaceFeatureExtract"],
-        ["blockMesh"],
-        ["snappyHexMesh", "-overwrite"],
-        ["potentialFoam", "-writep"],
-        ["simpleFoam"]
+        "openfoam -c 'surfaceFeatureExtract'",
+        "openfoam -c 'blockMesh'",
+        "openfoam -c 'snappyHexMesh -overwrite'",
+        "openfoam -c 'potentialFoam -writep'",
+        "openfoam -c 'simpleFoam'"
     ]
+
     for cmd in commands:
-        res = subprocess.run(cmd, cwd=case_dir, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        res = subprocess.run(cmd, shell=True, cwd=case_dir, executable="/bin/zsh")
         if res.returncode != 0:
-            print(f"[!] Command {' '.join(cmd)} failed in {case_dir}")
+            print(f"[!] Command failed in {case_dir}")
             return False
+
+    # Purge all numbered time folders automatically to save space (keep 0/)
+    for tdir in os.listdir(case_dir):
+        if tdir.isdigit() and tdir != "0":
+            shutil.rmtree(os.path.join(case_dir, tdir), ignore_errors=True)
+
     return True
 
 if __name__ == "__main__":

@@ -12,3 +12,12 @@ openfoam_template/constant/triSurface/*.eMesh
 __pycache__/
 *.pyc
 .DS_Store
+
+# Ignore bulky run artifacts (VTK exports, full session logs, IDE)
+VTK/
+runs/*/VTK/
+snappy_full.log
+runs/*/snappy_full.log
+terminal_all_bash.txt
+zsh_history_raw.txt
+.idea/

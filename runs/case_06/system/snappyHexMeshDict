@@ -25,7 +25,7 @@ castellatedMeshControls
     maxGlobalCells 2000000;
     minRefinementCells 10;
     maxLoadUnbalance 0.10;
-    nCellsBetweenLevels 2;
+    nCellsBetweenLevels 3;
 
     features
     (
@@ -39,7 +39,7 @@ castellatedMeshControls
     {
         tailfin
         {
-            level (4 5);
+            level (6 7);
         }
     }
 
@@ -49,7 +49,7 @@ castellatedMeshControls
     {
     }
 
-    locationInMesh (-0.5 0.1 0.1);
+    locationInMesh     (-0.2 0.1 0.1);
     allowFreeStandingZoneFaces true;
 }
 
@@ -69,40 +69,33 @@ snapControls
 
 addLayersControls
 {
-    relativeSizes       false;
+    relativeSizes         false;
+    nBufferCellsNoExtrude 3;
+    featureAngle          60;
+    nGrow                 0;
 
     layers
     {
-        tailfin
+        "tailfin"
         {
-            nSurfaceLayers  8;
+            nSurfaceLayers 12;
         }
     }
 
-    expansionRatio      1.2;
-    firstLayerThickness 5e-05; // Starting with manageable ~50 micron first layer
-    minThickness        1e-06;
+    expansionRatio        1.12;
+    firstLayerThickness   0.000004;
+    minThickness          1e-08;
 
-    // v2606 Layer Extrusion Stability Controls
-    nGrow               0;
-    featureAngle        130;
-    slipFeatureAngle    30;
-    nRelaxIter          5;
-    nRelaxedIter        20;
-
-    minMedialAxisAngle  90;
-    maxThicknessToMedialRatio 0.3;
-    medialAxisHeadRoom  0.2;
-
-    nBufferCellsNoExtrude 0;
-    nSmoothSurfaceNormals 1;
-    nSmoothNormals      3;
-    nSmoothThickness    10;
-    maxFaceThicknessRatio 0.5;
-    nLayerIter          50;
-    
-    // Allow snappy to handle tight corners gracefully
-    meshShrinkationWithNoLayers false;
+    nSolveIter            100;
+    nRelaxIter            8;
+    nSmoothSurfaceNormals 2;
+    nSmoothNormals        4;
+    nSmoothThickness      20;
+    maxFaceThicknessRatio 0.8;
+    maxThicknessToMedialRatio 1.2;
+    minMedialAxisAngle    30;
+    nLayerIter            100;
+    nRelaxedIter          40;
 }
 
 meshQualityControls
@@ -123,6 +116,17 @@ meshQualityControls
 
     nSmoothScale 4;
     errorReduction 0.75;
+
+    relaxed
+    {
+        maxNonOrtho 75;
+        maxBoundarySkewness 30;
+        maxInternalSkewness 8;
+        maxConcavity 100;
+        minVol 1e-15;
+        minTetQuality -1e30;
+        minDeterminant 0.0001;
+    }
 }
 
 mergeTolerance 1e-6;

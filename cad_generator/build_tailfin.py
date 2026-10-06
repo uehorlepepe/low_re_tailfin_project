@@ -28,6 +28,16 @@ def generate_tailfin(sweep_deg, ar, taper, output_stl):
     root_pts = load_airfoil_points(dat_path, root_chord)
     tip_pts = load_airfoil_points(dat_path, tip_chord)
 
+    # Blunt sharp TE (SD8020 closes at a point -> zero-thickness edge crashes
+    # snappyHexMesh when finely tessellated). Enforce ~0.1% chord TE thickness.
+    for pts, chord in ((root_pts, root_chord), (tip_pts, tip_chord)):
+        te_gap = 0.001 * chord
+        # first + last points are both TE (x~=chord); split them +/- in y
+        if abs(pts[0][0] - pts[-1][0]) < 1e-9 and abs(pts[0][1] - pts[-1][1]) < 1e-9:
+            cx = pts[0][0]
+            pts[0] = (cx, pts[0][1] + te_gap / 2)
+            pts[-1] = (cx, pts[-1][1] - te_gap / 2)
+
     # Place root profile on base XY plane, then workplane offset to tip profile plane
     tailfin = (
         cq.Workplane("XY")
@@ -39,7 +49,7 @@ def generate_tailfin(sweep_deg, ar, taper, output_stl):
     )
 
     os.makedirs(os.path.dirname(os.path.abspath(output_stl)), exist_ok=True)
-    cq.exporters.export(tailfin, output_stl)
+    cq.exporters.export(tailfin, output_stl, tolerance=0.0001, angularTolerance=0.05)
     print(f"✅ Successfully generated 3D CAD: {output_stl}")
     print(f"   Metrics: Sweep={sweep_deg}°, AR={ar}, Taper={taper} | Span={span:.3f}m")
 

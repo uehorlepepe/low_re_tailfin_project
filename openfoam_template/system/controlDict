@@ -10,7 +10,7 @@ application     simpleFoam;
 startFrom startTime;
 startTime 0;
 stopAt endTime;
-endTime 1000;
+endTime 500;
 deltaT          1;
 writeControl    timeStep;
 writeInterval   100;
@@ -26,6 +26,12 @@ functions
 {
     forceCoeffs
     {
+    origin          (0 0 0);
+    liftDir         (0 0 1);
+    dragDir         (1 0 0);
+    pitchAxis       (0 1 0);
+    e1              (1 0 0);
+    e2              (0 1 0);
         type            forceCoeffs;
         libs            ("libforces.so");
         writeControl    timeStep;
