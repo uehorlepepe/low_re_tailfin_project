@@ -30,3 +30,5 @@ zsh_history_raw.txt
 runs/*/[0-9]*/
 runs/*/constant/polyMesh/
 runs/*/processor*/
+runs/*/log.simpleFoam
+runs/*/constant/extendedFeatureEdgeMesh/
