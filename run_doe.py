@@ -17,6 +17,8 @@ Usage (run from repo root so paths resolve, monitor live):
   python3 run_doe.py                         # all 30 cases, ~9 h total
   python3 run_doe.py --cases 1-3             # subset smoke test first!
   python3 run_doe.py --cases 1,5,9 --no-solve  # mesh-only check
+  python3 run_doe.py --cases 25 --betas "-20,-10,0,10,20"  # sideslip campaign:
+      dirs runs/case_25_b-020 ..., new beta_deg/CY/Cn columns in the summary
 Background:
   nohup python3 run_doe.py > doe_batch.log 2>&1 &
   tail -f doe_batch.log
@@ -241,6 +243,26 @@ def stage_case(case_dir):
                     os.path.join(case_dir, 'constant', fn))
 
 
+def write_inflow(case_dir, beta_deg, u_inf=6.6618):
+    """Rewrite 0/U internalField + inlet value for sideslip beta (deg).
+
+    Convention: beta measured from +x toward +y, so beta > 0 puts the
+    windward face at -y. Magnitude is unchanged (rotation only).
+    """
+    import math
+    b = math.radians(float(beta_deg))
+    vec = f'({u_inf * math.cos(b):.4f} {u_inf * math.sin(b):.4f} 0)'
+    p = os.path.join(case_dir, '0', 'U')
+    s = open(p).read()
+    s2 = re.sub(r'internalField\s+uniform\s*\([^)]*\)',
+                f'internalField   uniform {vec}', s)
+    s2 = re.sub(r'(inlet\s*\{[^}]*?value\s+)uniform\s*\([^)]*\)',
+                rf'\1uniform {vec}', s2, flags=re.S)
+    if s2 == s:
+        raise RuntimeError('write_inflow: no U entries replaced in 0/U')
+    open(p, 'w').write(s2)
+
+
 def gen_cad(sweep, ar, taper, stl_path):
     """Regenerate STL with the frozen recipe + trimesh watertight clean."""
     cmd = (f'{sys.executable} {CAD} --sweep {sweep} --ar {ar} '
@@ -267,21 +289,35 @@ def gen_cad(sweep, ar, taper, stl_path):
 
 
 def parse_forces(case_dir):
-    """Last row of newest coefficient*.dat -> (Cd, Cl, Cs)."""
-    cands = glob.glob(os.path.join(case_dir, 'postProcessing', 'forceCoeffs',
-                                   '*', 'coefficient*.dat'))
-    if not cands:
-        raise RuntimeError('no coefficient.dat produced')
-    f = max(cands, key=os.path.getmtime)
-    last = None
-    with open(f, errors='ignore') as fh:
-        for line in fh:
-            line = line.strip()
-            if line and not line.startswith('#'):
-                last = line.split()
-    if not last or len(last) < 11:
-        raise RuntimeError(f'unparseable coefficient row in {f}')
-    return float(last[1]), float(last[4]), float(last[10]), os.path.basename(f)
+    """Last rows -> (Cd, Cl, Cs, CY, Cn).
+
+    Longitudinal object: Cd=col1, Cl=col4, Cs=col10. Lateral object
+    (forceCoeffsLateral): its "Cl" col is CY, its "CmPitch" col is Cn.
+    """
+    def last_row(sub):
+        cands = glob.glob(os.path.join(case_dir, 'postProcessing', sub,
+                                       '*', 'coefficient*.dat'))
+        if not cands:
+            raise RuntimeError(f'no {sub}/coefficient.dat produced')
+        f = max(cands, key=os.path.getmtime)
+        last = None
+        with open(f, errors='ignore') as fh:
+            for line in fh:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    last = line.split()
+        if not last or len(last) < 11:
+            raise RuntimeError(f'unparseable coefficient row in {f}')
+        return last
+
+    l = last_row('forceCoeffs')
+    try:
+        ll = last_row('forceCoeffsLateral')
+        cy, cn = float(ll[4]), float(ll[6])
+    except RuntimeError:
+        cy, cn = float('nan'), float('nan')  # pre-beta cases lack the object
+    return (float(l[1]), float(l[4]), float(l[10]), cy, cn,
+            os.path.basename('forceCoeffs'))
 
 
 def parse_yplus_output(text):
@@ -312,19 +348,23 @@ def parse_regional_output(text):
     return stats
 
 
-def run_case(idx, row, no_solve=False):
-    """Full pipeline for one DoE row. Returns result dict; raises on failure."""
+def run_case(idx, row, no_solve=False, beta=0.0, tag=None):
+    """Full pipeline for one DoE row at sideslip beta. Raises on failure."""
     run_id = (row.get('run_id') or f'run_{idx:02d}').strip()
     sweep = float(row['sweep_deg'])
     taper = float(row['taper_ratio'])
     ar = float(row['aspect_ratio'])
-    case_dir = os.path.join(RUNS, f'case_{idx:02d}')
-    res = dict(run_id=run_id, case=f'case_{idx:02d}', sweep_deg=sweep,
-               aspect_ratio=ar, taper_ratio=taper, status='OK')
-    log(f'===== {res["case"]} ({run_id}): sweep={sweep} AR={ar} taper={taper} =====')
+    beta = float(row.get('beta_deg', beta))
+    cname = tag or f'case_{idx:02d}'
+    case_dir = os.path.join(RUNS, cname)
+    res = dict(run_id=run_id, case=cname, sweep_deg=sweep,
+               aspect_ratio=ar, taper_ratio=taper, beta_deg=beta, status='OK')
+    log(f'===== {res["case"]} ({run_id}): sweep={sweep} AR={ar} taper={taper} '
+        f'beta={beta} =====')
 
-    # 1. stage + CAD
+    # 1. stage + CAD + inflow angle
     stage_case(case_dir)
+    write_inflow(case_dir, beta)
     stl = os.path.join(case_dir, 'constant', 'triSurface', 'tailfin.stl')
     res['stl_info'] = gen_cad(sweep, ar, taper, stl)
     log(f'{res["case"]}: STL ok ({res["stl_info"]})')
@@ -371,7 +411,7 @@ def run_case(idx, row, no_solve=False):
 
     # 5. regional extraction (passes true DoE params explicitly)
     p = subprocess.run(
-        f'{sys.executable} {REGIONAL} --case runs/case_{idx:02d} '
+        f'{sys.executable} {REGIONAL} --case runs/{cname} '
         f'--sweep {sweep} --ar {ar} --taper {taper}',
         shell=True, cwd=ROOT, executable='/bin/zsh', capture_output=True,
         text=True, timeout=1200)
@@ -383,10 +423,11 @@ def run_case(idx, row, no_solve=False):
     log(f'{res["case"]}: y+ avg={yav:.2f} max={ymx:.1f} | '
         f'LSB mean={res["lsb_mean"]:.2f} max={res["lsb_max"]:.1f}')
 
-    # 6. forces (Cd, Cl, Cs->Cy)
-    cd, cl, cs, _ = parse_forces(case_dir)
-    res.update(Cd=cd, Cl=cl, Cy=cs)
-    log(f'{res["case"]}: Cd={cd:.5f} Cl={cl:.5f} Cy={cs:.6f}')
+    # 6. forces: longitudinal (Cd, Cl, Cs) + lateral (CY, Cn)
+    cd, cl, cs, cy, cn, _ = parse_forces(case_dir)
+    res.update(Cd=cd, Cl=cl, Cy=cs, CY=cy, Cn=cn)
+    log(f'{res["case"]}: Cd={cd:.5f} Cl={cl:.5f} Cy={cs:.6f} '
+        f'CY={cy:.5f} Cn={cn:.6f}')
 
     # 7. tidy bulky artifacts (keep final time dir for audit)
     for bulky in glob.glob(os.path.join(case_dir, 'VTK')):
@@ -401,14 +442,25 @@ def run_case(idx, row, no_solve=False):
 
 
 COLUMNS = ['run_id', 'case', 'sweep_deg', 'aspect_ratio', 'taper_ratio',
+           'beta_deg',
            'status', 'cells', 'layer_coverage', 'iters', 'stop_reason',
-           'Cd', 'Cl', 'Cy',
+           'Cd', 'Cl', 'Cy', 'CY', 'Cn',
            'yplus_min', 'yplus_max', 'yplus_avg',
            'lsb_mean', 'lsb_max', 'lsb_p95', 'lsb_frac_le1', 'notes']
 
 
 def append_row(res):
     new = not os.path.exists(SUMMARY)
+    if not new:
+        with open(SUMMARY, newline='') as f:
+            old = next(csv.reader(f), None)
+        if old != COLUMNS:  # schema drift (e.g. pre-beta runs): migrate inline
+            rest = list(csv.DictReader(open(SUMMARY, newline='')))
+            with open(SUMMARY, 'w', newline='') as f:
+                w = csv.DictWriter(f, fieldnames=COLUMNS, extrasaction='ignore')
+                w.writeheader()
+                for r in rest:
+                    w.writerow({k: r.get(k, '') for k in COLUMNS})
     with open(SUMMARY, 'a', newline='') as f:
         w = csv.DictWriter(f, fieldnames=COLUMNS, extrasaction='ignore')
         if new:
@@ -420,6 +472,10 @@ def main():
     ap = argparse.ArgumentParser(description='30-case tailfin DoE batch sweep')
     ap.add_argument('--cases', default=None, help='"1-30", "1,5,9", default all')
     ap.add_argument('--no-solve', action='store_true', help='mesh-only smoke test')
+    ap.add_argument('--betas', default=None,
+                    help='sideslip sweep, e.g. "-20,-10,0,10,20". Each geometry '
+                         'row runs at every beta into runs/case_XX_b+020 dirs. '
+                         'Default: single beta=0 (legacy behavior).')
     a = ap.parse_args()
 
     # Preflight: CAD + STL steps need the HOST python env (cadquery, trimesh).
@@ -435,33 +491,44 @@ def main():
     with open(DOE, newline='') as f:
         rows = list(csv.DictReader(f))
     idxs = [i for i in parse_cases(a.cases) if i <= len(rows)]
-    log(f'{len(idxs)} case(s) queued (python {sys.version.split()[0]}). '
+    beta_list = ([float(b) for b in a.betas.split(',')] if a.betas else None)
+    jobs = []
+    for idx in idxs:
+        row = dict(rows[idx - 1])
+        for beta in (beta_list if beta_list is not None
+                     else [float(row.get('beta_deg', 0) or 0)]):
+            tag = (f'case_{idx:02d}' if not a.betas
+                   else f'case_{idx:02d}_b{beta:+04.0f}')
+            jobs.append((idx, row, float(beta), tag))
+    log(f'{len(jobs)} job(s) queued (python {sys.version.split()[0]}). '
         f'Summary -> doe_results_summary.csv, errors -> doe_errors.log')
 
-    for n, idx in enumerate(idxs, 1):
+    for n, (idx, row, beta, tag) in enumerate(jobs, 1):
         try:
-            res = run_case(idx, rows[idx - 1], no_solve=a.no_solve)
+            res = run_case(idx, row, no_solve=a.no_solve, beta=beta, tag=tag)
             res['notes'] = '' if res['status'] == 'OK' else res['status']
         except subprocess.TimeoutExpired:
-            res = dict(run_id=rows[idx - 1].get('run_id', f'run_{idx:02d}'),
-                       case=f'case_{idx:02d}',
-                       sweep_deg=rows[idx - 1].get('sweep_deg', ''),
-                       aspect_ratio=rows[idx - 1].get('aspect_ratio', ''),
-                       taper_ratio=rows[idx - 1].get('taper_ratio', ''),
+            res = dict(run_id=row.get('run_id', f'run_{idx:02d}'),
+                       case=tag,
+                       sweep_deg=row.get('sweep_deg', ''),
+                       aspect_ratio=row.get('aspect_ratio', ''),
+                       taper_ratio=row.get('taper_ratio', ''),
+                       beta_deg=beta,
                        status='FAILED', notes='timeout')
             em = f"[{res['case']}] TIMEOUT after step limit"
             errlog(em + '\n' + traceback.format_exc()[-800:])
         except Exception as e:  # noqa: BLE001 - batch must survive any case failure
-            res = dict(run_id=rows[idx - 1].get('run_id', f'run_{idx:02d}'),
-                       case=f'case_{idx:02d}',
-                       sweep_deg=rows[idx - 1].get('sweep_deg', ''),
-                       aspect_ratio=rows[idx - 1].get('aspect_ratio', ''),
-                       taper_ratio=rows[idx - 1].get('taper_ratio', ''),
+            res = dict(run_id=row.get('run_id', f'run_{idx:02d}'),
+                       case=tag,
+                       sweep_deg=row.get('sweep_deg', ''),
+                       aspect_ratio=row.get('aspect_ratio', ''),
+                       taper_ratio=row.get('taper_ratio', ''),
+                       beta_deg=beta,
                        status='FAILED', notes=str(e)[-300:])
             em = f"[{res['case']}] {type(e).__name__}: {e}"
             errlog(em + '\n' + traceback.format_exc()[-800:])
         append_row(res)
-        log(f'progress {n}/{len(idxs)} -> {res["status"]} ({res["case"]})')
+        log(f'progress {n}/{len(jobs)} -> {res["status"]} ({res["case"]})')
     log(f'done. Summary: {SUMMARY}')
 
 

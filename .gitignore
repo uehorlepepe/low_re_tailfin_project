@@ -21,6 +21,9 @@ runs/*/snappy_full.log
 snappy_sc.log
 runs/*/snappy_sc.log
 doe_*.log
+*_smoke.log
+lsb_full.log
+lsb_smoke.log
 terminal_all_bash.txt
 zsh_history_raw.txt
 .idea/
