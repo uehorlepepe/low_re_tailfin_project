@@ -1,0 +1,15 @@
+# OpenFOAM time directories and solution logs
+[0-9]*/
+postProcessing/
+log.*
+
+# Mesh/geometry intermediate files
+constant/extendedFeatureEdgeMesh/
+constant/triSurface/*.eMesh
+constant/polyMesh/
+
+# OS / Python generated files
+__pycache__/
+.DS_Store
+*.obj
+FOAM

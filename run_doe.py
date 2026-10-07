@@ -209,10 +209,10 @@ def run_monitored_solve(case_dir, sflog, min_iters=300, res_tol=1e-4,
         raise
 
 
-def parse_cases(spec):
+def parse_cases(spec, n=30):
     """'1-30' / '1,5,9' / None -> sorted list of 1-based row indices."""
     if not spec:
-        return list(range(1, 31))
+        return list(range(1, n + 1))
     out = set()
     for part in spec.split(','):
         part = part.strip()
@@ -221,7 +221,7 @@ def parse_cases(spec):
             out.update(range(int(a), int(b) + 1))
         elif part:
             out.add(int(part))
-    return sorted(i for i in out if 1 <= i <= 30)
+    return sorted(i for i in out if 1 <= i <= n)
 
 
 def stage_case(case_dir):
@@ -409,9 +409,10 @@ def run_case(idx, row, no_solve=False, beta=0.0, tag=None):
     ymn, ymx, yav = parse_yplus_output(tail)
     res.update(yplus_min=ymn, yplus_max=ymx, yplus_avg=yav)
 
-    # 5. regional extraction (passes true DoE params explicitly)
+    # 5. regional extraction (passes true DoE params explicitly; absolute
+    # path so --runs-dir campaigns resolve outside runs/)
     p = subprocess.run(
-        f'{sys.executable} {REGIONAL} --case runs/{cname} '
+        f'{sys.executable} {REGIONAL} --case {case_dir} '
         f'--sweep {sweep} --ar {ar} --taper {taper}',
         shell=True, cwd=ROOT, executable='/bin/zsh', capture_output=True,
         text=True, timeout=1200)
@@ -476,6 +477,16 @@ def main():
                     help='sideslip sweep, e.g. "-20,-10,0,10,20". Each geometry '
                          'row runs at every beta into runs/case_XX_b+020 dirs. '
                          'Default: single beta=0 (legacy behavior).')
+    ap.add_argument('--template', default=None,
+                    help='case template dir (default: openfoam_template)')
+    ap.add_argument('--matrix', default=None,
+                    help='DoE matrix CSV (default: openfoam_template/doe_matrix.csv)')
+    ap.add_argument('--runs-dir', default=None,
+                    help='output cases dir (default: runs; e.g. runs_hisweep)')
+    ap.add_argument('--summary', default=None,
+                    help='master summary CSV (default: doe_results_summary.csv)')
+    ap.add_argument('--tag-prefix', default='case',
+                    help='case dir prefix (default: case -> case_01; e.g. hi)')
     a = ap.parse_args()
 
     # Preflight: CAD + STL steps need the HOST python env (cadquery, trimesh).
@@ -488,17 +499,30 @@ def main():
                  f'(host python3), NOT inside the `openfoam` shell. '
                  f'Type `exit`, then: python3 run_doe.py ...')
 
+    # Campaign overrides: rebind path globals before anything runs, so the
+    # frozen 30-case dataset is never touched by a hisweep/beta campaign.
+    global TEMPLATE, RUNS, DOE, SUMMARY, ERRLOG
+    TEMPLATE = os.path.abspath(a.template) if a.template else TEMPLATE
+    DOE = os.path.abspath(a.matrix) if a.matrix else DOE
+    RUNS = os.path.abspath(a.runs_dir) if a.runs_dir else RUNS
+    SUMMARY = os.path.abspath(a.summary) if a.summary else SUMMARY
+    ERRLOG = (os.path.join(os.path.dirname(SUMMARY), 'doe_errors.log')
+              if not a.summary else
+              os.path.join(os.path.dirname(SUMMARY),
+                           os.path.basename(SUMMARY).replace('.csv', '_errors.log')))
+    os.makedirs(RUNS, exist_ok=True)
+
     with open(DOE, newline='') as f:
         rows = list(csv.DictReader(f))
-    idxs = [i for i in parse_cases(a.cases) if i <= len(rows)]
+    idxs = [i for i in parse_cases(a.cases, len(rows)) if i <= len(rows)]
     beta_list = ([float(b) for b in a.betas.split(',')] if a.betas else None)
     jobs = []
     for idx in idxs:
         row = dict(rows[idx - 1])
         for beta in (beta_list if beta_list is not None
                      else [float(row.get('beta_deg', 0) or 0)]):
-            tag = (f'case_{idx:02d}' if not a.betas
-                   else f'case_{idx:02d}_b{beta:+04.0f}')
+            tag = (f'{a.tag_prefix}_{idx:02d}' if not a.betas
+                   else f'{a.tag_prefix}_{idx:02d}_b{beta:+04.0f}')
             jobs.append((idx, row, float(beta), tag))
     log(f'{len(jobs)} job(s) queued (python {sys.version.split()[0]}). '
         f'Summary -> doe_results_summary.csv, errors -> doe_errors.log')

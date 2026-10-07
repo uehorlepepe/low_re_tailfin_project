@@ -15,11 +15,11 @@ __pycache__/
 
 # Ignore bulky run artifacts (VTK exports, full session logs, IDE)
 VTK/
-runs/*/VTK/
+runs*/*/VTK/
 snappy_full.log
-runs/*/snappy_full.log
+runs*/*/snappy_full.log
 snappy_sc.log
-runs/*/snappy_sc.log
+runs*/*/snappy_sc.log
 doe_*.log
 beta_*.log
 *_smoke.log
@@ -31,8 +31,8 @@ zsh_history_raw.txt
 
 # Bulk CFD artifacts: time dirs + meshes stay local (per-case logs,
 # postProcessing/*.dat and summary CSVs are the committed record)
-runs/*/[0-9]*/
-runs/*/constant/polyMesh/
-runs/*/processor*/
-runs/*/log.simpleFoam
-runs/*/constant/extendedFeatureEdgeMesh/
+runs*/*/[0-9]*/
+runs*/*/constant/polyMesh/
+runs*/*/processor*/
+runs*/*/log.simpleFoam
+runs*/*/constant/extendedFeatureEdgeMesh/

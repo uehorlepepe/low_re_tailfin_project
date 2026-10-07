@@ -1,0 +1,2 @@
+run_id,case,sweep_deg,aspect_ratio,taper_ratio,beta_deg,status,cells,layer_coverage,iters,stop_reason,Cd,Cl,Cy,CY,Cn,yplus_min,yplus_max,yplus_avg,lsb_mean,lsb_max,lsb_p95,lsb_frac_le1,notes
+hi_01,hi_01,45.26,1.45,0.429,0.0,MESH_ONLY,382474,98.0%,,,,,,,,,,,,,,,MESH_ONLY
