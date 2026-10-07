@@ -1,0 +1,151 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      snappyHexMeshDict;
+}
+
+castellatedMesh true;
+snap            true;
+addLayers       true;
+
+geometry
+{
+    tailfin.stl
+    {
+        type triSurfaceMesh;
+        name tailfin;
+    }
+}
+
+castellatedMeshControls
+{
+    maxLocalCells 450000;
+    maxGlobalCells 900000;
+    minRefinementCells 10;
+    maxLoadUnbalance 0.10;
+    nCellsBetweenLevels 3;
+
+    features
+    (
+        {
+            file "tailfin.eMesh";
+            level 3;
+        }
+    );
+
+    refinementSurfaces
+    {
+        tailfin
+        {
+            level (4 5);
+        }
+    }
+
+    resolveFeatureAngle 30;
+
+    refinementRegions
+    {
+        tipVortex
+        {
+            mode inside;
+            // tip + near-wake box: covers 60deg tip excursion (x~0-0.6)
+            // and vortex core trajectory downstream
+            levels ((1E15 4));
+            min (0.0 -0.30 0.0);
+            max (1.0 0.30 0.45);
+        }
+        wake
+        {
+            mode inside;
+            levels ((1E15 3));
+            min (0.0 -0.35 -0.05);
+            max (1.5 0.35 0.5);
+        }
+    }
+
+    locationInMesh (-0.2 0.1 0.1);
+    allowFreeStandingZoneFaces true;
+}
+
+snapControls
+{
+    nSmoothPatch 3;
+    tolerance 2.0;
+    nSolveIter 30;
+    nRelaxIter 5;
+    nFeatureSnapIter 10;
+    implicitFeatureSnap false;
+    explicitFeatureSnap true;
+    multiRegionFeatureSnap false;
+}
+
+
+
+addLayersControls
+{
+    relativeSizes         false;
+    nBufferCellsNoExtrude 0;
+    featureAngle          60;
+    nGrow                 0;
+
+    layers
+    {
+        "tailfin"
+        {
+            nSurfaceLayers 12;
+        }
+    }
+
+    expansionRatio      1.2;
+    firstLayerThickness 1.5e-05;
+    minThickness        2e-07;
+
+    nSolveIter          50;
+    nRelaxIter          5;
+    nSmoothSurfaceNormals 1;
+    nSmoothNormals      3;
+    nSmoothThickness    10;
+    maxFaceThicknessRatio 0.5;
+    maxThicknessToMedialRatio 0.5;
+    minMedialAxisAngle  60;
+    slipFeatureAngle    30;
+    nLayerIter          50;
+    nRelaxedIter        20;
+}
+
+meshQualityControls
+{
+    maxNonOrtho 75;
+    maxBoundarySkewness 20;
+    maxInternalSkewness 4;
+    maxConcave 80;
+    minFlatness 0.5;
+    minVol 1e-13;
+    minTetQuality 1e-15;
+    minArea -1;
+    minTwist 0.02;
+    minDeterminant 0.001;
+    minFaceWeight 0.02;
+    minVolRatio 0.01;
+    minTriangleTwist -1;
+
+    nSmoothScale 4;
+    errorReduction 0.75;
+
+    relaxed
+    {
+        maxNonOrtho 75;
+        maxBoundarySkewness 30;
+        maxInternalSkewness 8;
+        maxConcavity 100;
+        minVol 1e-15;
+        minTetQuality -1e30;
+        minDeterminant 0.0001;
+    }
+}
+
+mergeTolerance 1e-6;
+
+

@@ -199,6 +199,17 @@ def run_monitored_solve(case_dir, sflog, min_iters=300, res_tol=1e-4,
                         proc.wait(timeout=120)
                     except subprocess.TimeoutExpired:
                         proc.kill()
+                    # SIGTERM can land mid-write: drop a torn latest time dir
+                    # (missing p) so post-processing uses the prior complete one
+                    times = sorted(
+                        (dd for dd in os.listdir(case_dir)
+                         if dd.replace('.', '', 1).isdigit() and dd != '0'
+                         and os.path.isdir(os.path.join(case_dir, dd))),
+                        key=float)
+                    if times and not os.path.exists(
+                            os.path.join(case_dir, times[-1], 'p')):
+                        shutil.rmtree(os.path.join(case_dir, times[-1]),
+                                      ignore_errors=True)
                     return iters, 'converged'
             else:
                 stable_polls = 0
@@ -525,7 +536,7 @@ def main():
                    else f'{a.tag_prefix}_{idx:02d}_b{beta:+04.0f}')
             jobs.append((idx, row, float(beta), tag))
     log(f'{len(jobs)} job(s) queued (python {sys.version.split()[0]}). '
-        f'Summary -> doe_results_summary.csv, errors -> doe_errors.log')
+        f'Summary -> {SUMMARY}, errors -> {ERRLOG}')
 
     for n, (idx, row, beta, tag) in enumerate(jobs, 1):
         try:

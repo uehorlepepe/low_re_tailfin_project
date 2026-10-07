@@ -23,6 +23,8 @@ runs*/*/snappy_sc.log
 doe_*.log
 beta_*.log
 *_smoke.log
+*_rerun.log
+*_batch.log
 lsb_full.log
 lsb_smoke.log
 terminal_all_bash.txt
