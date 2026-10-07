@@ -274,10 +274,19 @@ def write_inflow(case_dir, beta_deg, u_inf=6.6618):
     open(p, 'w').write(s2)
 
 
-def gen_cad(sweep, ar, taper, stl_path):
+def set_endtime(case_dir, end_time, start='startTime'):
+    """Patch system/controlDict startFrom/endTime (for staged solves)."""
+    p = os.path.join(case_dir, 'system', 'controlDict')
+    s = open(p).read()
+    s = re.sub(r'startFrom\s+\w+;', f'startFrom {start};', s)
+    s = re.sub(r'endTime\s+[\d.]+;', f'endTime {end_time};', s)
+    open(p, 'w').write(s)
+
+
+def gen_cad(sweep, ar, taper, stl_path, aoa=0.0):
     """Regenerate STL with the frozen recipe + trimesh watertight clean."""
     cmd = (f'{sys.executable} {CAD} --sweep {sweep} --ar {ar} '
-           f'--taper {taper} --out {stl_path} '
+           f'--taper {taper} --out {stl_path} --aoa {aoa} '
            f'--tol {FROZEN["tol"]} --atol {FROZEN["atol"]} --te-frac {FROZEN["te_frac"]}')
     p = subprocess.run(cmd, shell=True, executable='/bin/zsh',
                        capture_output=True, text=True, timeout=300)
@@ -359,25 +368,27 @@ def parse_regional_output(text):
     return stats
 
 
-def run_case(idx, row, no_solve=False, beta=0.0, tag=None):
-    """Full pipeline for one DoE row at sideslip beta. Raises on failure."""
+def run_case(idx, row, no_solve=False, beta=0.0, tag=None, aoa=0.0):
+    """Full pipeline for one DoE row at sideslip beta / incidence aoa."""
     run_id = (row.get('run_id') or f'run_{idx:02d}').strip()
     sweep = float(row['sweep_deg'])
     taper = float(row['taper_ratio'])
     ar = float(row['aspect_ratio'])
     beta = float(row.get('beta_deg', beta))
+    aoa = float(row.get('aoa_deg', aoa))
     cname = tag or f'case_{idx:02d}'
     case_dir = os.path.join(RUNS, cname)
     res = dict(run_id=run_id, case=cname, sweep_deg=sweep,
-               aspect_ratio=ar, taper_ratio=taper, beta_deg=beta, status='OK')
+               aspect_ratio=ar, taper_ratio=taper, beta_deg=beta,
+               aoa_deg=aoa, status='OK')
     log(f'===== {res["case"]} ({run_id}): sweep={sweep} AR={ar} taper={taper} '
-        f'beta={beta} =====')
+        f'beta={beta} aoa={aoa} =====')
 
     # 1. stage + CAD + inflow angle
     stage_case(case_dir)
     write_inflow(case_dir, beta)
     stl = os.path.join(case_dir, 'constant', 'triSurface', 'tailfin.stl')
-    res['stl_info'] = gen_cad(sweep, ar, taper, stl)
+    res['stl_info'] = gen_cad(sweep, ar, taper, stl, aoa=aoa)
     log(f'{res["case"]}: STL ok ({res["stl_info"]})')
 
     slog = os.path.join(case_dir, 'log.snappyHexMesh')
@@ -403,6 +414,22 @@ def run_case(idx, row, no_solve=False, beta=0.0, tag=None):
     if no_solve:
         res['status'] = 'MESH_ONLY'
         return res
+
+    # 2b. asymmetric seed for pitched cases: y-axis rotation preserves the
+    # discrete y-mirror symmetry, so axial-start SIMPLE can never leave the
+    # zero-lift branch. 80 iters at 2 deg sideslip breaks the symmetry; the
+    # main solve then continues at beta=0 to the physical lifting branch.
+    if abs(aoa) > 1e-12:
+        SEED_BETA, SEED_ITERS = 2.0, 80
+        write_inflow(case_dir, SEED_BETA)
+        set_endtime(case_dir, SEED_ITERS, start='startTime')
+        rc, _ = of('simpleFoam', case_dir,
+                   os.path.join(case_dir, 'log.seedFoam'), timeout=900)
+        if rc != 0 or has_fpe(os.path.join(case_dir, 'log.seedFoam')):
+            raise RuntimeError('seed stage failed (see log.seedFoam)')
+        write_inflow(case_dir, beta)  # restore campaign inflow (usually axial)
+        set_endtime(case_dir, FROZEN['end_time'], start='latestTime')
+        log(f'{res["case"]}: seed stage done ({SEED_ITERS} it at beta={SEED_BETA})')
 
     # 3. solve (1000-iter harbor, early stop past the 300-iter floor)
     sflog = os.path.join(case_dir, 'log.simpleFoam')
@@ -454,7 +481,7 @@ def run_case(idx, row, no_solve=False, beta=0.0, tag=None):
 
 
 COLUMNS = ['run_id', 'case', 'sweep_deg', 'aspect_ratio', 'taper_ratio',
-           'beta_deg',
+           'beta_deg', 'aoa_deg',
            'status', 'cells', 'layer_coverage', 'iters', 'stop_reason',
            'Cd', 'Cl', 'Cy', 'CY', 'Cn',
            'yplus_min', 'yplus_max', 'yplus_avg',
@@ -498,6 +525,9 @@ def main():
                     help='master summary CSV (default: doe_results_summary.csv)')
     ap.add_argument('--tag-prefix', default='case',
                     help='case dir prefix (default: case -> case_01; e.g. hi)')
+    ap.add_argument('--aoas', default=None,
+                    help='incidence sweep, e.g. "-4,0,4,8,12" (geometric pitch, '
+                         'inflow stays axial). Dirs gain _a+008 suffix.')
     a = ap.parse_args()
 
     # Preflight: CAD + STL steps need the HOST python env (cadquery, trimesh).
@@ -527,20 +557,27 @@ def main():
         rows = list(csv.DictReader(f))
     idxs = [i for i in parse_cases(a.cases, len(rows)) if i <= len(rows)]
     beta_list = ([float(b) for b in a.betas.split(',')] if a.betas else None)
+    aoa_list = ([float(x) for x in a.aoas.split(',')] if a.aoas else None)
     jobs = []
     for idx in idxs:
         row = dict(rows[idx - 1])
         for beta in (beta_list if beta_list is not None
                      else [float(row.get('beta_deg', 0) or 0)]):
-            tag = (f'{a.tag_prefix}_{idx:02d}' if not a.betas
-                   else f'{a.tag_prefix}_{idx:02d}_b{beta:+04.0f}')
-            jobs.append((idx, row, float(beta), tag))
+            for aoa in (aoa_list if aoa_list is not None
+                        else [float(row.get('aoa_deg', 0) or 0)]):
+                tag = f'{a.tag_prefix}_{idx:02d}'
+                if a.betas:
+                    tag += f'_b{beta:+04.0f}'
+                if a.aoas:
+                    tag += f'_a{aoa:+04.0f}'
+                jobs.append((idx, row, float(beta), float(aoa), tag))
     log(f'{len(jobs)} job(s) queued (python {sys.version.split()[0]}). '
         f'Summary -> {SUMMARY}, errors -> {ERRLOG}')
 
-    for n, (idx, row, beta, tag) in enumerate(jobs, 1):
+    for n, (idx, row, beta, aoa, tag) in enumerate(jobs, 1):
         try:
-            res = run_case(idx, row, no_solve=a.no_solve, beta=beta, tag=tag)
+            res = run_case(idx, row, no_solve=a.no_solve, beta=beta, tag=tag,
+                           aoa=aoa)
             res['notes'] = '' if res['status'] == 'OK' else res['status']
         except subprocess.TimeoutExpired:
             res = dict(run_id=row.get('run_id', f'run_{idx:02d}'),
@@ -548,7 +585,7 @@ def main():
                        sweep_deg=row.get('sweep_deg', ''),
                        aspect_ratio=row.get('aspect_ratio', ''),
                        taper_ratio=row.get('taper_ratio', ''),
-                       beta_deg=beta,
+                       beta_deg=beta, aoa_deg=aoa,
                        status='FAILED', notes='timeout')
             em = f"[{res['case']}] TIMEOUT after step limit"
             errlog(em + '\n' + traceback.format_exc()[-800:])
@@ -558,7 +595,7 @@ def main():
                        sweep_deg=row.get('sweep_deg', ''),
                        aspect_ratio=row.get('aspect_ratio', ''),
                        taper_ratio=row.get('taper_ratio', ''),
-                       beta_deg=beta,
+                       beta_deg=beta, aoa_deg=aoa,
                        status='FAILED', notes=str(e)[-300:])
             em = f"[{res['case']}] {type(e).__name__}: {e}"
             errlog(em + '\n' + traceback.format_exc()[-800:])

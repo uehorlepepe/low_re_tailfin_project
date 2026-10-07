@@ -16,7 +16,14 @@ def load_airfoil_points(dat_filepath, chord_length):
     return points
 
 def generate_tailfin(sweep_deg, ar, taper, output_stl,
-                     tol=0.0001, atol=0.05, te_frac=0.001):
+                     tol=0.0001, atol=0.05, te_frac=0.001,
+                     aoa_deg=0.0, pivot_x=0.0375):
+    """AoA rotates the lofted solid about the y-axis through (pivot_x,0,0):
+    alpha > 0 = nose-up (leading edge rises, positive lift direction).
+    NOTE for steady RANS: y-axis rotation preserves port/starboard (y-mirror)
+    symmetry exactly, so axial-inflow SIMPLE stays on the zero-lift symmetric
+    branch. Pitched cases MUST start from an asymmetric seed (see run_doe
+    two-stage start) or no lift develops regardless of iteration count."""
     root_chord = 0.15 
     tip_chord = root_chord * taper
     mean_chord = 0.5 * (root_chord + tip_chord)
@@ -49,6 +56,12 @@ def generate_tailfin(sweep_deg, ar, taper, output_stl,
         .loft(combine=True)
     )
 
+    if abs(aoa_deg) > 1e-12:
+        solid = tailfin.val()
+        # +angle about +y sends +x toward +z: leading edge rises = nose-up
+        tailfin = solid.rotate(cq.Vector(pivot_x, 0, 0),
+                               cq.Vector(pivot_x, 1, 0), aoa_deg)
+
     os.makedirs(os.path.dirname(os.path.abspath(output_stl)), exist_ok=True)
     cq.exporters.export(tailfin, output_stl, tolerance=tol, angularTolerance=atol)
     print(f"✅ Successfully generated 3D CAD: {output_stl}")
@@ -65,7 +78,11 @@ if __name__ == "__main__":
     parser.add_argument("--atol", type=float, default=0.05)
     parser.add_argument("--te-frac", type=float, default=0.001,
                         help="blunt TE gap as fraction of chord")
+    parser.add_argument("--aoa", type=float, default=0.0,
+                        help="pitch incidence deg about y-axis (nose-up positive)")
+    parser.add_argument("--pivot-x", type=float, default=0.0375)
 
     args = parser.parse_args()
     generate_tailfin(args.sweep, args.ar, args.taper, args.out,
-                     tol=args.tol, atol=args.atol, te_frac=args.te_frac)
+                     tol=args.tol, atol=args.atol, te_frac=args.te_frac,
+                     aoa_deg=args.aoa, pivot_x=args.pivot_x)

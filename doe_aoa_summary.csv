@@ -1,0 +1,4 @@
+run_id,case,sweep_deg,aspect_ratio,taper_ratio,beta_deg,aoa_deg,status,cells,layer_coverage,iters,stop_reason,Cd,Cl,Cy,CY,Cn,yplus_min,yplus_max,yplus_avg,lsb_mean,lsb_max,lsb_p95,lsb_frac_le1,notes
+aoa_01,aoa_01_a+000,15.97,1.54,0.417,0.0,0.0,MESH_ONLY,205944,97.4%,,,,,,,,,,,,,,,MESH_ONLY
+aoa_01,aoa_01_a+008,15.97,1.54,0.417,0.0,8.0,OK,208237,98.3%,388,converged,0.01020409,-0.0008435949,-0.0001681904,-0.0001681904,-8.877181e-05,0.0775009,60.858,1.46948,0.63,60.86,1.78,0.857,
+aoa_01,aoa_01_a+008,15.97,1.54,0.417,0.0,8.0,OK,197939,96.5%,421,converged,0.01036111,-0.0003037366,-0.0004354916,-0.0004354916,-0.0003432397,0.062481,54.6381,2.11229,1.68,52.54,4.56,0.643,

@@ -1,0 +1,2 @@
+run_id,sweep_deg,taper_ratio,aspect_ratio,span_b_m,c_root_m,c_tip_m,Cd,Cy,Cl,status
+aoa_01,15.97,0.417,1.54,,,,,,,PENDING
