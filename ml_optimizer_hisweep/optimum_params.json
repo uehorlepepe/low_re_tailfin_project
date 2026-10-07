@@ -1,0 +1,16 @@
+{
+  "sweep_deg": 57.7610609983534,
+  "aspect_ratio": 0.8351608997129665,
+  "taper_ratio": 0.16117533925406782,
+  "objective": "joint",
+  "alpha": 0.005,
+  "Jprime": 0.009347848806991917,
+  "pred_Cd": 0.0038086890583839406,
+  "pred_lsb_mean": 1.107831949721595,
+  "nearest_measured": {
+    "run_id": "hi_07",
+    "case": "hi_07",
+    "Cd": 0.004316082,
+    "lsb_mean": 1.12
+  }
+}

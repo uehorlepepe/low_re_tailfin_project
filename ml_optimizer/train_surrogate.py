@@ -46,8 +46,8 @@ OUT = os.path.join(ROOT, 'ml_optimizer')
 FEATURES = ['sweep_deg', 'aspect_ratio', 'taper_ratio']
 
 
-def load(ok_only=True):
-    d = pd.read_csv(DATA)
+def load(path, ok_only=True):
+    d = pd.read_csv(path)
     if ok_only:
         d = d[d['status'] == 'OK'].reset_index(drop=True)
     X = d[FEATURES].to_numpy(float)
@@ -138,10 +138,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--alpha', type=float, default=0.005)
     ap.add_argument('--objective', default='joint', choices=('joint', 'cd', 'lsb'))
+    ap.add_argument('--data', default=None, help='input summary CSV')
+    ap.add_argument('--outdir', default=None, help='artifact output dir')
     a = ap.parse_args()
+    global OUT
+    if a.outdir:
+        OUT = os.path.abspath(a.outdir)
     os.makedirs(OUT, exist_ok=True)
+    DATA_LOCAL = os.path.abspath(a.data) if a.data else DATA
 
-    d, X = load()
+    d, X = load(DATA_LOCAL)
     print(f'dataset: {len(d)} OK rows')
     bounds = np.array([[X[:, i].min(), X[:, i].max()] for i in range(3)])
     print('search bounds (observed):',

@@ -1,0 +1,23 @@
+FoamFile { version 2.0; format ascii; class dictionary; object surfaces; }
+type surfaces;
+libs ("libsampling.so");
+writeControl writeTime;
+writeInterval 1;
+surfaceFormat vtk;
+interpolate true;
+fields ( Q );
+surfaces
+(
+    p0
+    {
+        type cuttingPlane;
+        planeType pointAndNormal;
+        pointAndNormalDict { point (0.350 0.0 0.2); normal (1 0 0); }
+    }
+    p1
+    {
+        type cuttingPlane;
+        planeType pointAndNormal;
+        pointAndNormalDict { point (0.750 0.0 0.2); normal (1 0 0); }
+    }
+);

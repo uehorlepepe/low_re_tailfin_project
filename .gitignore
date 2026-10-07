@@ -27,6 +27,7 @@ beta_*.log
 *_batch.log
 lsb_full.log
 lsb_smoke.log
+lev_full.log
 terminal_all_bash.txt
 zsh_history_raw.txt
 .idea/
