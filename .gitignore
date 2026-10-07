@@ -21,6 +21,7 @@ runs/*/snappy_full.log
 snappy_sc.log
 runs/*/snappy_sc.log
 doe_*.log
+beta_*.log
 *_smoke.log
 lsb_full.log
 lsb_smoke.log
