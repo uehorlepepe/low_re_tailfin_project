@@ -1,0 +1,94 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     pimpleFoam;
+startFrom startTime;
+startTime 0;
+stopAt endTime;
+endTime 5e-4;   // 500 fixed steps at deltaT below (sanity run)
+deltaT          1e-6;   // Co ~ 0.6 on 15 um wall cells at U = 9 m/s
+writeControl    timeStep;
+writeInterval   100;
+purgeWrite      0;
+writeFormat     ascii;
+writePrecision  6;
+writeCompression off;
+timeFormat      general;
+timePrecision   6;
+runTimeModifiable true;
+
+functions
+{
+    forceCoeffs
+    {
+        type            forceCoeffs;
+        libs            ("libforces.so");
+        writeControl    timeStep;
+        timeInterval    1;
+        log             true;
+
+        patches         ("tailfin");
+        rho             rhoInf;
+        rhoInf          1.225;
+        CofR            (0.025 0 0);   // quarter-chord root: moment pivot
+
+        dragDir         (1 0 0);
+        liftDir         (0 0 1);
+        pitchAxis       (0 1 0);
+
+        magUInf         9.0;
+        lRef            0.1;
+        Aref            0.012;
+    }
+
+    forceCoeffsLateral
+    {
+        type            forceCoeffs;
+        libs            ("libforces.so");
+        writeControl    timeStep;
+        timeInterval    1;
+        log             true;
+
+        patches         ("tailfin");
+        rho             rhoInf;
+        rhoInf          1.225;
+        CofR            (0.025 0 0);   // same pivot as longitudinal object
+
+        // "Cl" column of THIS object is CY; "CmPitch" column is Cn (about z)
+        liftDir         (0 1 0);
+        dragDir         (1 0 0);
+        pitchAxis       (0 0 1);
+
+        magUInf         9.0;
+        lRef            0.1;
+        Aref            0.012;
+    }
+
+    wallShearStress
+    {
+        type            wallShearStress;
+        libs            ("libfieldFunctionObjects.so");
+        writeControl    writeTime;
+        patches         ("tailfin");
+    }
+
+    yPlus
+    {
+        type            yPlus;
+        libs            ("libfieldFunctionObjects.so");
+        writeControl    writeTime;
+        patches         ("tailfin");
+    }
+
+    Q
+    {
+        type            Q;
+        libs            ("libfieldFunctionObjects.so");
+        writeControl    writeTime;
+    }
+}

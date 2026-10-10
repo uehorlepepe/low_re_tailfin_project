@@ -39,4 +39,5 @@ runs*/*/[0-9]*/
 runs*/*/constant/polyMesh/
 runs*/*/processor*/
 runs*/*/log.simpleFoam
+runs*/*/log.pimpleFoam
 runs*/*/constant/extendedFeatureEdgeMesh/

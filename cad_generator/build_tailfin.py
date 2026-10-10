@@ -3,6 +3,19 @@ import math
 import os
 import cadquery as cq
 
+def naca00_points(thickness, chord, n=40):
+    """Symmetric 4-digit section (e.g. NACA 0009): cosine-spaced loop."""
+    yt = lambda x: 5 * thickness * chord * (
+        0.2969 * (x / chord) ** 0.5 - 0.1260 * (x / chord)
+        - 0.3516 * (x / chord) ** 2 + 0.2843 * (x / chord) ** 3
+        - 0.1036 * (x / chord) ** 4)
+    xs = [chord * (1 - math.cos(t)) / 2 for t in
+          [math.pi * i / (n - 1) for i in range(n)]]
+    upper = [(x, yt(x)) for x in xs]
+    lower = [(x, -yt(x)) for x in reversed(xs[1:-1])]
+    return upper + lower  # TE -> LE -> TE closed loop
+
+
 def load_airfoil_points(dat_filepath, chord_length):
     points = []
     with open(dat_filepath, 'r') as f:
@@ -17,24 +30,29 @@ def load_airfoil_points(dat_filepath, chord_length):
 
 def generate_tailfin(sweep_deg, ar, taper, output_stl,
                      tol=0.0001, atol=0.05, te_frac=0.001,
-                     aoa_deg=0.0, pivot_x=0.0375):
+                     aoa_deg=0.0, pivot_x=0.0375,
+                     section='sd8020', root_chord=0.15, span=None):
     """AoA rotates the lofted solid about the y-axis through (pivot_x,0,0):
     alpha > 0 = nose-up (leading edge rises, positive lift direction).
     NOTE for steady RANS: y-axis rotation preserves port/starboard (y-mirror)
-    symmetry exactly, so axial-inflow SIMPLE stays on the zero-lift symmetric
+    symmetry exactly, so axial-start SIMPLE stays on the zero-lift symmetric
     branch. Pitched cases MUST start from an asymmetric seed (see run_doe
-    two-stage start) or no lift develops regardless of iteration count."""
-    root_chord = 0.15 
+    two-stage start) or no lift develops regardless of iteration count.
+    section='naca0009' builds the analytic 9%-thick symmetric foil instead of
+    the SD8020 .dat; root_chord/span override AR sizing for benchmarks."""
     tip_chord = root_chord * taper
-    mean_chord = 0.5 * (root_chord + tip_chord)
-    span = ar * mean_chord
+    if span is None:
+        span = ar * 0.5 * (root_chord + tip_chord)
     sweep_offset = span * math.tan(math.radians(sweep_deg))
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    dat_path = os.path.join(script_dir, 'sd8020.dat')
-    
-    root_pts = load_airfoil_points(dat_path, root_chord)
-    tip_pts = load_airfoil_points(dat_path, tip_chord)
+    if section == 'naca0009':
+        root_pts = naca00_points(0.09, root_chord)
+        tip_pts = naca00_points(0.09, tip_chord)
+    else:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        dat_path = os.path.join(script_dir, 'sd8020.dat')
+        root_pts = load_airfoil_points(dat_path, root_chord)
+        tip_pts = load_airfoil_points(dat_path, tip_chord)
 
     # Blunt sharp TE (SD8020 closes at a point -> zero-thickness edge crashes
     # snappyHexMesh when finely tessellated). Enforce ~0.1% chord TE thickness.
@@ -81,8 +99,15 @@ if __name__ == "__main__":
     parser.add_argument("--aoa", type=float, default=0.0,
                         help="pitch incidence deg about y-axis (nose-up positive)")
     parser.add_argument("--pivot-x", type=float, default=0.0375)
+    parser.add_argument("--section", default='sd8020',
+                        choices=('sd8020', 'naca0009'))
+    parser.add_argument("--root-chord", type=float, default=0.15)
+    parser.add_argument("--span", type=float, default=None,
+                        help="override span (default: derived from AR)")
 
     args = parser.parse_args()
     generate_tailfin(args.sweep, args.ar, args.taper, args.out,
                      tol=args.tol, atol=args.atol, te_frac=args.te_frac,
-                     aoa_deg=args.aoa, pivot_x=args.pivot_x)
+                     aoa_deg=args.aoa, pivot_x=args.pivot_x,
+                     section=args.section, root_chord=args.root_chord,
+                     span=args.span)
