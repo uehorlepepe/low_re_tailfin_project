@@ -22,6 +22,7 @@ snappy_sc.log
 runs*/*/snappy_sc.log
 doe_*.log
 beta_*.log
+raven_*.log
 aoa_*.log
 *_smoke.log
 *_rerun.log

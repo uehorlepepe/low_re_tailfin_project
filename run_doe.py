@@ -283,11 +283,15 @@ def set_endtime(case_dir, end_time, start='startTime'):
     open(p, 'w').write(s)
 
 
-def gen_cad(sweep, ar, taper, stl_path, aoa=0.0):
+def gen_cad(sweep, ar, taper, stl_path, aoa=0.0, section='sd8020',
+            root_chord=0.15, span=None):
     """Regenerate STL with the frozen recipe + trimesh watertight clean."""
     cmd = (f'{sys.executable} {CAD} --sweep {sweep} --ar {ar} '
            f'--taper {taper} --out {stl_path} --aoa {aoa} '
-           f'--tol {FROZEN["tol"]} --atol {FROZEN["atol"]} --te-frac {FROZEN["te_frac"]}')
+           f'--section {section} --root-chord {root_chord} '
+           f'--tol {FROZEN["tol"]} --atol {FROZEN["atol"]} --te-frac {FROZEN["te_frac"]} ')
+    if span is not None:
+        cmd += f'--span {span} '
     p = subprocess.run(cmd, shell=True, executable='/bin/zsh',
                        capture_output=True, text=True, timeout=300)
     if p.returncode != 0:
@@ -368,7 +372,20 @@ def parse_regional_output(text):
     return stats
 
 
-def run_case(idx, row, no_solve=False, beta=0.0, tag=None, aoa=0.0):
+def scale_velocity(case_dir, u_inf, u_ref=6.6618, k_ref=0.0065):
+    """Rescale turbulence + force refs for inflow magnitude (Re matching).
+    Must run AFTER write_inflow (which sets the 0/U vector)."""
+    p = os.path.join(case_dir, '0', 'k')
+    s = open(p).read().replace(f'uniform {k_ref}', f'uniform {k_ref * (u_inf / u_ref) ** 2:.5f}')
+    open(p, 'w').write(s)
+    p = os.path.join(case_dir, 'system', 'controlDict')
+    s = open(p).read()
+    s = re.sub(r'magUInf\s+[\d.]+;', f'magUInf         {u_inf};', s)
+    open(p, 'w').write(s)
+
+
+def run_case(idx, row, no_solve=False, beta=0.0, tag=None, aoa=0.0,
+             section='sd8020', root_chord=0.15, span=None, u_inf=6.6618):
     """Full pipeline for one DoE row at sideslip beta / incidence aoa."""
     run_id = (row.get('run_id') or f'run_{idx:02d}').strip()
     sweep = float(row['sweep_deg'])
@@ -384,11 +401,15 @@ def run_case(idx, row, no_solve=False, beta=0.0, tag=None, aoa=0.0):
     log(f'===== {res["case"]} ({run_id}): sweep={sweep} AR={ar} taper={taper} '
         f'beta={beta} aoa={aoa} =====')
 
-    # 1. stage + CAD + inflow angle
+    # 1. stage + CAD + inflow angle (+magnitude for Re matching)
     stage_case(case_dir)
-    write_inflow(case_dir, beta)
+    write_inflow(case_dir, beta, u_inf=u_inf)
+    if abs(u_inf - 6.6618) > 1e-9:
+        scale_velocity(case_dir, u_inf)
     stl = os.path.join(case_dir, 'constant', 'triSurface', 'tailfin.stl')
-    res['stl_info'] = gen_cad(sweep, ar, taper, stl, aoa=aoa)
+    res['stl_info'] = gen_cad(sweep, ar, taper, stl, aoa=aoa,
+                              section=section, root_chord=root_chord,
+                              span=span)
     log(f'{res["case"]}: STL ok ({res["stl_info"]})')
 
     slog = os.path.join(case_dir, 'log.snappyHexMesh')
@@ -528,6 +549,12 @@ def main():
     ap.add_argument('--aoas', default=None,
                     help='incidence sweep, e.g. "-4,0,4,8,12" (geometric pitch, '
                          'inflow stays axial). Dirs gain _a+008 suffix.')
+    ap.add_argument('--section', default=None,
+                    help='airfoil section override (sd8020|naca0009)')
+    ap.add_argument('--root-chord', type=float, default=None)
+    ap.add_argument('--span', type=float, default=None)
+    ap.add_argument('--u-inf', type=float, default=None,
+                    help='inflow magnitude override for Re matching')
     a = ap.parse_args()
 
     # Preflight: CAD + STL steps need the HOST python env (cadquery, trimesh).
@@ -561,6 +588,11 @@ def main():
     jobs = []
     for idx in idxs:
         row = dict(rows[idx - 1])
+        section = row.get('section', None) or a.section or 'sd8020'
+        root_chord = float(row.get('root_chord_m', None) or a.root_chord or 0.15)
+        span = row.get('span_b_m', None) or a.span
+        span = float(span) if span not in (None, '') else None
+        u_inf = float(row.get('u_inf', None) or a.u_inf or 6.6618)
         for beta in (beta_list if beta_list is not None
                      else [float(row.get('beta_deg', 0) or 0)]):
             for aoa in (aoa_list if aoa_list is not None
@@ -570,14 +602,17 @@ def main():
                     tag += f'_b{beta:+04.0f}'
                 if a.aoas:
                     tag += f'_a{aoa:+04.0f}'
-                jobs.append((idx, row, float(beta), float(aoa), tag))
+                jobs.append((idx, row, float(beta), float(aoa), tag,
+                             section, root_chord, span, u_inf))
     log(f'{len(jobs)} job(s) queued (python {sys.version.split()[0]}). '
         f'Summary -> {SUMMARY}, errors -> {ERRLOG}')
 
-    for n, (idx, row, beta, aoa, tag) in enumerate(jobs, 1):
+    for n, (idx, row, beta, aoa, tag,
+            section, root_chord, span, u_inf) in enumerate(jobs, 1):
         try:
             res = run_case(idx, row, no_solve=a.no_solve, beta=beta, tag=tag,
-                           aoa=aoa)
+                           aoa=aoa, section=section, root_chord=root_chord,
+                           span=span, u_inf=u_inf)
             res['notes'] = '' if res['status'] == 'OK' else res['status']
         except subprocess.TimeoutExpired:
             res = dict(run_id=row.get('run_id', f'run_{idx:02d}'),
