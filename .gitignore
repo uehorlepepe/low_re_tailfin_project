@@ -27,6 +27,7 @@ aoa_*.log
 *_smoke.log
 *_rerun.log
 *_batch.log
+mi_*.log
 lsb_full.log
 lsb_smoke.log
 lev_full.log
