@@ -1,6 +1,6 @@
 # Low-Re Tailfin Optimization
 
-My NTU project on tailfin (vertical stabilizer) planform optimization for low
+My project on tailfin (vertical stabilizer) planform optimization for low
 Reynolds number flight (Re around 50k to 100k). Closed loop: parametric CAD
 to OpenFOAM CFD with transition modelling to ML surrogate to wind tunnel
 validation. The first three stages are done and committed here. The headline
