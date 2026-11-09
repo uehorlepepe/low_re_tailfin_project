@@ -87,3 +87,11 @@ datasets under `results/`.
    (force balance over beta 0 to 15 deg, oil-flow for the LSB footprint).
 2. A beta-times-geometry campaign for per-planform stability derivatives.
 3. Write it all up.
+
+## Manuscript
+
+The full write-up is here: [`Low Re Tailfin Research - Yifan.pdf`](./Low%20Re%20Tailfin%20Research%20-%20Yifan.pdf)
+
+> ⚠️ **Original work — do not copy or repost.** This manuscript and all associated research are original work by Yifan Wang. Do not copy, paste, or post this content anywhere without my explicit consent. Unauthorized distribution will be subject to consequences.
+>
+> 🚧 **Highly work in progress.** Progress is day to day — expect the manuscript, figures, and results to change as the research develops.
